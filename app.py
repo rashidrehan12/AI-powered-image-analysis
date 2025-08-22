@@ -308,7 +308,8 @@ with tab1:
         
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
-            st.image(image, caption="Your Uploaded Image", use_column_width=True)
+            # Use the older parameter name for compatibility
+            st.image(image, caption="Your Uploaded Image", width=None)  # Fixed for compatibility
         
         st.markdown("### 💬 Ask a Question")
         input_text = st.text_area(
@@ -321,9 +322,9 @@ with tab1:
         # Create two columns for buttons
         btn_col1, btn_col2 = st.columns(2)
         with btn_col1:
-            submit = st.button("🚀 Analyze Image", type="primary", use_container_width=True)
+            submit = st.button("🚀 Analyze Image", type="primary")
         with btn_col2:
-            clear_clicked = st.button("🗑️ Clear", use_container_width=True)
+            clear_clicked = st.button("🗑️ Clear")
             if clear_clicked:
                 st.session_state.clear_clicked = True
                 # Use JavaScript to clear the file uploader (visual effect only)
