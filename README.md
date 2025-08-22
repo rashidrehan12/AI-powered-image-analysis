@@ -136,5 +136,5 @@ If you have any questions or issues, please open an issue on GitHub or contact m
 ---
 
 <div align="center">
-Made with ❤️ and ☕ by [Your Name]
+Made with ❤️ and ☕ by Md Rashid
 </div>
