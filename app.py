@@ -1,4 +1,4 @@
-# Q&A Chatbot
+# Import necessary libraries
 from dotenv import load_dotenv
 load_dotenv()  # take environment variables from .env.
 
@@ -113,6 +113,8 @@ st.markdown("""
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         position: relative;
         overflow: hidden;
+        /* Smooth scroll target */
+        scroll-margin-top: 20px;
     }
     .response-container::before {
         content: '';
@@ -274,12 +276,25 @@ st.markdown("""
     .success-pulse {
         animation: successPulse 2s ease-in-out;
     }
+    /* Highlight effect for results */
+    @keyframes highlight {
+        0% { box-shadow: 0 0 5px rgba(108, 92, 231, 0.3); }
+        50% { box-shadow: 0 0 25px rgba(108, 92, 231, 0.8), 0 0 50px rgba(108, 92, 231, 0.4); }
+        100% { box-shadow: 0 0 5px rgba(108, 92, 231, 0.3); }
+    }
+    .highlight-results {
+        animation: highlight 2s ease-in-out;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state for clear functionality
+# Initialize session state for clear functionality and scroll management
 if 'clear_clicked' not in st.session_state:
     st.session_state.clear_clicked = False
+if 'analysis_complete' not in st.session_state:
+    st.session_state.analysis_complete = False
+if 'scroll_to_results' not in st.session_state:
+    st.session_state.scroll_to_results = False
 
 # Header section with floating animation
 st.markdown("""
@@ -308,8 +323,7 @@ with tab1:
         
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
-            # Use the older parameter name for compatibility
-            st.image(image, caption="Your Uploaded Image", width=None)  # Fixed for compatibility
+            st.image(image, caption="Your Uploaded Image",)
         
         st.markdown("### 💬 Ask a Question")
         input_text = st.text_area(
@@ -327,10 +341,10 @@ with tab1:
             clear_clicked = st.button("🗑️ Clear")
             if clear_clicked:
                 st.session_state.clear_clicked = True
-                # Use JavaScript to clear the file uploader (visual effect only)
+                st.session_state.analysis_complete = False
+                st.session_state.scroll_to_results = False
                 st.markdown("""
                 <script>
-                // This is a visual effect only - actual clearing would need more complex handling
                 document.querySelector('[data-testid="stFileUploader"]').style.opacity = "0.5";
                 setTimeout(() => {
                     document.querySelector('[data-testid="stFileUploader"]').style.opacity = "1";
@@ -358,7 +372,7 @@ with tab1:
             - "Are there any text elements and what do they say?"
             """)
         
-        # Response section
+        # Response section with auto-scroll functionality
         if submit and uploaded_file is not None:
             with st.spinner("🔮 Gemini is analyzing your image..."):
                 # Create a fancy progress bar
@@ -384,11 +398,53 @@ with tab1:
                 time.sleep(0.5)
                 
                 response = get_gemini_response(input_text, image)
+                st.session_state.analysis_complete = True
+                st.session_state.scroll_to_results = True
             
+            # Clear the progress indicators
+            progress_text.empty()
+            progress_bar.empty()
+            
+            # Results section with unique ID for scrolling
+            st.markdown('<div id="analysis-results"></div>', unsafe_allow_html=True)
             st.markdown("### 📝 Analysis Results")
-            st.markdown('<div class="response-container fade-in">', unsafe_allow_html=True)
+            
+            # Add highlighting effect and auto-scroll
+            highlight_class = "highlight-results" if st.session_state.scroll_to_results else ""
+            st.markdown(f'<div class="response-container fade-in {highlight_class}">', unsafe_allow_html=True)
             st.write(response)
             st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Auto-scroll to results using JavaScript
+            if st.session_state.scroll_to_results:
+                st.markdown("""
+                <script>
+                setTimeout(function() {
+                    // Scroll to the results section
+                    const resultsElement = document.getElementById('analysis-results');
+                    if (resultsElement) {
+                        resultsElement.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start',
+                            inline: 'nearest' 
+                        });
+                    }
+                    
+                    // Alternative: scroll to response container
+                    const responseContainer = document.querySelector('.response-container');
+                    if (responseContainer) {
+                        responseContainer.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center',
+                            inline: 'nearest' 
+                        });
+                    }
+                }, 1000); // Wait 1 second after rendering
+                </script>
+                """, unsafe_allow_html=True)
+                
+                # Reset the scroll flag
+                st.session_state.scroll_to_results = False
             
             # Add a download button for the response
             st.download_button(
@@ -404,6 +460,14 @@ with tab1:
                 <h3 class='glow'>✨ Analysis Complete! ✨</h3>
             </div>
             """, unsafe_allow_html=True)
+            
+            # Add a "Back to Top" button
+            if st.button("⬆️ Back to Top", key="back_to_top"):
+                st.markdown("""
+                <script>
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                </script>
+                """, unsafe_allow_html=True)
             
         elif submit and uploaded_file is None:
             st.error("⚠️ Please upload an image first!")
@@ -431,7 +495,7 @@ with tab2:
         
         <div class="custom-card">
         <h3>📊 Step 4: Receive Insights</h3>
-        <p>Get detailed analysis and answers to your questions. You can download the results for future reference.</p>
+        <p>Get detailed analysis and answers to your questions. The page automatically scrolls to show your results, and you can download them for future reference.</p>
         </div>
         """, unsafe_allow_html=True)
     
